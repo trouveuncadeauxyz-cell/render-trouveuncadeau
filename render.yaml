@@ -64,11 +64,6 @@ services:
           name: trouveuncadeau-cache
           property: port
       
-      - key: REDIS_PASSWORD
-        fromService:
-          type: redis
-          name: trouveuncadeau-cache
-          property: password
     
     # Health check
     healthCheckPath: /health
