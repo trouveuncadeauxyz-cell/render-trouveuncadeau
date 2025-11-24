@@ -1,0 +1,124 @@
+# ============================================
+# Render.com Configuration
+# TrouveUnCadeau.xyz
+# ============================================
+
+services:
+  # === Web Service (API) ===
+  - type: web
+    name: trouveuncadeau-api
+    env: python
+    region: oregon  # ou 'frankfurt' pour Europe
+    plan: starter  # Gratuit pour commencer
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --worker-class uvicorn.workers.UvicornWorker --timeout 120
+    
+    # Variables d'environnement
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      
+      - key: DEBUG
+        value: false
+      
+      - key: LOG_LEVEL
+        value: INFO
+      
+      - key: REDIS_ENABLED
+        value: true
+      
+      # LLM API Keys (à configurer dans Render dashboard)
+      - key: TOGETHER_API_KEY
+        sync: false  # Secret - à ajouter manuellement
+      
+      - key: GEMINI_API_KEY
+        sync: false  # Secret
+      
+      - key: CLAUDE_API_KEY
+        sync: false  # Secret
+      
+      - key: OPENAI_API_KEY
+        sync: false  # Secret
+      
+      # Airtable (à configurer dans Render dashboard)
+      - key: AIRTABLE_API_KEY
+        sync: false  # Secret
+      
+      - key: AIRTABLE_BASE_ID
+        sync: false  # Secret
+      
+      - key: AIRTABLE_TABLE_NAME
+        value: Products
+      
+      # Redis connecté (voir ci-dessous)
+      - key: REDIS_HOST
+        fromService:
+          type: redis
+          name: trouveuncadeau-cache
+          property: host
+      
+      - key: REDIS_PORT
+        fromService:
+          type: redis
+          name: trouveuncadeau-cache
+          property: port
+      
+      - key: REDIS_PASSWORD
+        fromService:
+          type: redis
+          name: trouveuncadeau-cache
+          property: password
+    
+    # Health check
+    healthCheckPath: /health
+    
+    # Auto-deploy
+    autoDeploy: true
+
+  # === Redis Cache ===
+  - type: redis
+    name: trouveuncadeau-cache
+    region: oregon  # Même région que l'API
+    plan: starter  # Gratuit: 25MB RAM
+    maxmemoryPolicy: allkeys-lru  # Éviction des vieilles clés
+    ipAllowList: []  # Permet connexion depuis tous les services Render
+
+# ============================================
+# INSTRUCTIONS DE DÉPLOIEMENT
+# ============================================
+#
+# 1. Créer un compte sur Render.com
+# 2. Connecter votre repository GitHub
+# 3. Créer un nouveau "Blueprint" avec ce fichier
+# 4. Ajouter les secrets dans Environment Variables:
+#    - TOGETHER_API_KEY
+#    - GEMINI_API_KEY (optionnel)
+#    - CLAUDE_API_KEY (optionnel)
+#    - OPENAI_API_KEY
+#    - AIRTABLE_API_KEY
+#    - AIRTABLE_BASE_ID
+# 5. Deploy!
+#
+# L'API sera accessible à:
+# https://trouveuncadeau-api.onrender.com
+#
+# Documentation API:
+# https://trouveuncadeau-api.onrender.com/docs
+#
+# ============================================
+# NOTES
+# ============================================
+#
+# - Plan gratuit: 750h/mois (suffisant pour prototype)
+# - Redis gratuit: 25MB (environ 50k requêtes cachées)
+# - Auto-deploy activé sur push à main
+# - Sleep après 15min d'inactivité (plan gratuit)
+# - Premier appel après sleep: ~30s
+#
+# Pour production:
+# - Upgrade vers plan Starter ($7/mois)
+# - Upgrade Redis vers plan Standard ($10/mois, 100MB)
+# - Ajouter monitoring (Sentry, DataDog, etc.)
+#
+# ============================================
